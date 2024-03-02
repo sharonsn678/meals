@@ -1,40 +1,57 @@
 
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:meals/models/meal.dart';
+import 'package:meals/providers/favorites_provider.dart';
 
-class MealDetailScreen extends StatelessWidget {
+class MealDetailScreen extends ConsumerWidget {
   const MealDetailScreen(
-      {required this.meal, required this.onToggleFavorite, super.key});
+      {required this.meal, super.key});
 
   final Meal meal;
-  final void Function(Meal meal) onToggleFavorite;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final favorites = ref.watch(favoriteMealsProvider);
+    final isFavorite = favorites.contains(meal);
+
     return Scaffold(
       appBar: AppBar(
         title: Text(meal.title),
         actions: [
           IconButton(
               onPressed: () {
-                onToggleFavorite(meal);
+               final wasAdded = ref.read(favoriteMealsProvider.notifier).toogleFavoriteStatus(meal);
+               ScaffoldMessenger.of(context).clearSnackBars();
+               ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: 
+                    Text(
+                      wasAdded ? 'Meal added as a favorite.' : 'Meal removed.'),)
+               );
               },
-              icon: const Icon(
-                Icons.favorite,
+              icon: AnimatedSwitcher(
+                duration: const Duration(microseconds: 300),
+                transitionBuilder: (child, animation) => RotationTransition(turns:Tween(begin: 0.5, end: 1.0).animate(animation), child: child,),
+                child: Icon(
+                  isFavorite ? Icons.favorite : Icons.favorite_border_outlined, key: ValueKey(isFavorite), ),
+              ),
                 color: Colors.white,
-              )),
+              ),
         ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 8),
         child: Column(
           children: [
-            Image.network(
-              meal.imageUrl,
-              height: 300,
-              width: double.infinity,
-              fit: BoxFit.cover,
+            Hero(
+              tag: meal.id,
+              child: Image.network(
+                meal.imageUrl,
+                height: 300,
+                width: double.infinity,
+                fit: BoxFit.cover,
+              ),
             ),
             const SizedBox(
               height: 14,
